@@ -29,6 +29,17 @@ const deletepayment = (id) => {
 const countpayment = () => {
   return Pool.query(`SELECT COUNT(*) FROM payment`);
 };
+const findId = (id) => {
+  return new Promise((resolve, reject) =>
+    Pool.query(`SELECT id FROM product WHERE id=${id}`, (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  );
+};
 
 module.exports = {
   searchKeywordsPayment,
@@ -38,4 +49,5 @@ module.exports = {
   update,
   deletepayment,
   countpayment,
+  findId,
 };

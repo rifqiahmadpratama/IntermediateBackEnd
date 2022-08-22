@@ -1,4 +1,7 @@
 const paymentModel = require("../models/payment");
+const createError = require("http-errors");
+const commonHelper = require("../helper/common");
+const client = require("../config/redis");
 
 const paymentController = {
   searchKeywordsPayment: async (request, response) => {
@@ -49,30 +52,73 @@ const paymentController = {
     const id = Number(req.params.id);
     paymentModel
       .select(id)
-      .then((result) => res.json(result.rows))
+      .then((result) => {
+        client.setEx(`payment/${id}`, 60 * 60, JSON.stringify(result.rows));
+        commonHelper.response(
+          res,
+          result.rows,
+          200,
+          "get data success from database"
+        );
+      })
       .catch((err) => res.send(err));
   },
-  insert: (req, res) => {
-    const { id, amount } = req.body;
+  insertPayment: async (req, res) => {
+    const amount = req.body;
+    const {
+      rows: [count],
+    } = await paymentModel.countpayment();
+    const id = Number(count.count) + 1;
+
+    const data = {
+      id,
+      amount,
+    };
     paymentModel
-      .insert(id, amount)
-      .then(res.json("payment created"))
+      .insert(data)
+      .then((result) =>
+        commonHelper.response(res, result.rows, 201, "Payment created")
+      )
       .catch((err) => res.send(err));
   },
-  update: (req, res) => {
-    const id = Number(req.params.id);
-    const amount = req.body.amount;
-    paymentModel
-      .update(id, amount)
-      .then(res.json("Product updated"))
-      .catch((err) => res.send(err));
+  updatePayment: async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const amount = req.body;
+      const { rowCount } = await paymentModel.findId(id);
+      if (!rowCount) {
+        return next(createError(403, "ID is Not Found"));
+      }
+      const data = {
+        id,
+        amount,
+      };
+      paymentModel
+        .update(data)
+        .then((result) =>
+          commonHelper.response(res, result.rows, 200, "Payment updated")
+        )
+        .catch((err) => res.send(err));
+    } catch (error) {
+      console.log(error);
+    }
   },
-  delete: (req, res) => {
-    const id = Number(req.params.id);
-    paymentModel
-      .deletepayment(id)
-      .then(res.json("Product deleted"))
-      .catch((err) => res.send(err));
+  delete: async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const { rowCount } = await paymentModel.findId(id);
+      if (!rowCount) {
+        return next(createError(403, "ID is Not Found"));
+      }
+      paymentModel
+        .deletepayment(id)
+        .then((result) =>
+          commonHelper.response(res, result.rows, 200, "Payment deleted")
+        )
+        .catch((err) => res.send(err));
+    } catch (err) {
+      console.log(err);
+    }
   },
 };
 

@@ -11,7 +11,7 @@ const { protect } = require("../middleware/auth");
 router
   .post("/register", register)
   .post("/login", login)
-  .post("/refersh-token", refreshToken)
+  .post("/refresh-token", refreshToken)
   .get("/profile", protect, profile);
 
 module.exports = router;
